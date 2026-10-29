@@ -1,0 +1,134 @@
+import pygame
+import random
+import sys
+
+# 初始化
+pygame.init()
+
+# 常量
+CELL_SIZE = 20
+GRID_W = 30
+GRID_H = 20
+WIDTH = CELL_SIZE * GRID_W
+HEIGHT = CELL_SIZE * GRID_H
+FPS = 10
+
+# 颜色
+BLACK = (0, 0, 0)
+GREEN = (0, 200, 0)
+RED = (200, 0, 0)
+WHITE = (255, 255, 255)
+GRAY = (100, 100, 100)
+
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Snake Game")
+clock = pygame.time.Clock()
+font = pygame.font.SysFont(None, 36)
+
+
+def draw_text(text, color, x, y, center=False):
+    surface = font.render(text, True, color)
+    rect = surface.get_rect()
+    if center:
+        rect.center = (x, y)
+    else:
+        rect.topleft = (x, y)
+    screen.blit(surface, rect)
+
+
+def new_food(snake):
+    while True:
+        food = (random.randint(0, GRID_W - 1), random.randint(0, GRID_H - 1))
+        if food not in snake:
+            return food
+
+
+def game_over_screen(score):
+    screen.fill(BLACK)
+    draw_text("Game Over!", RED, WIDTH // 2, HEIGHT // 2 - 40, center=True)
+    draw_text(f"Score: {score}", WHITE, WIDTH // 2, HEIGHT // 2, center=True)
+    draw_text("Press R to Restart or Q to Quit", GRAY, WIDTH // 2, HEIGHT // 2 + 40, center=True)
+    pygame.display.flip()
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    return True
+                if event.key == pygame.K_q:
+                    pygame.quit()
+                    sys.exit()
+
+
+def run():
+    snake = [(GRID_W // 2, GRID_H // 2)]
+    direction = (1, 0)
+    next_direction = direction
+    food = new_food(snake)
+    score = 0
+    running = True
+
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP and direction != (0, 1):
+                    next_direction = (0, -1)
+                elif event.key == pygame.K_DOWN and direction != (0, -1):
+                    next_direction = (0, 1)
+                elif event.key == pygame.K_LEFT and direction != (1, 0):
+                    next_direction = (-1, 0)
+                elif event.key == pygame.K_RIGHT and direction != (-1, 0):
+                    next_direction = (1, 0)
+
+        direction = next_direction
+        head_x, head_y = snake[0]
+        dx, dy = direction
+        new_head = (head_x + dx, head_y + dy)
+
+        # 撞墙或撞自己
+        if (
+            new_head[0] < 0
+            or new_head[0] >= GRID_W
+            or new_head[1] < 0
+            or new_head[1] >= GRID_H
+            or new_head in snake
+        ):
+            if game_over_screen(score):
+                run()
+            else:
+                pygame.quit()
+                sys.exit()
+
+        snake.insert(0, new_head)
+
+        if new_head == food:
+            score += 1
+            food = new_food(snake)
+        else:
+            snake.pop()
+
+        # 绘制
+        screen.fill(BLACK)
+        for x, y in snake:
+            pygame.draw.rect(
+                screen, GREEN,
+                (x * CELL_SIZE + 1, y * CELL_SIZE + 1, CELL_SIZE - 2, CELL_SIZE - 2)
+            )
+        pygame.draw.rect(
+            screen, RED,
+            (food[0] * CELL_SIZE + 1, food[1] * CELL_SIZE + 1, CELL_SIZE - 2, CELL_SIZE - 2)
+        )
+        draw_text(f"Score: {score}", WHITE, 10, 10)
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
+if __name__ == "__main__":
+    run()
